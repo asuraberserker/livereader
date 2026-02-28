@@ -58,7 +58,7 @@ last_process.txt      上次选择的进程名（自动创建）
 ### 1. 启动主程序
 
 ```bash
-python livereader.py
+python livereader.pyw
 ```
 
 ### 2. 选择目标窗口
