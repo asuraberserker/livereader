@@ -1,0 +1,8 @@
+paddlepaddle==3.2.0
+paddleocr>=3.0.1
+pynput>=1.7.7
+pywin32>=306
+psutil>=5.9.0
+opencv-python>=4.9.0
+Pillow>=10.0.0
+numpy>=1.26.0
