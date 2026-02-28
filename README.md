@@ -42,7 +42,7 @@ pip install -r requirements.txt
 ## 文件结构
 
 ```
-livereader.py         主程序
+livereader.pyw        主程序
 range_selector.pyw    范围选择工具（由主程序启动）
 words_config.pyw      读音替换配置工具
 requirements.txt      Python 依赖列表
