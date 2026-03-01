@@ -2,6 +2,7 @@
 range_selector.pyw - 划定截图范围，完成后通过 IPC 回报主程序
 """
 import ctypes
+import ctypes.wintypes
 import sys
 import tkinter as tk
 from multiprocessing.connection import Client
@@ -21,7 +22,6 @@ class RangeSelectorApp:
         # 获取所有屏幕的整体区域（支持多显示器）
         screen = ImageGrab.grab(all_screens=True)
         # bbox 左上角偏移
-        import ctypes
         monitors = self._get_all_monitors()
         left   = min(m[0] for m in monitors)
         top    = min(m[1] for m in monitors)
