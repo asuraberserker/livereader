@@ -42,7 +42,7 @@ pip install -r requirements.txt
 ## File Structure
 
 ```
-livereader.py         Main program
+livereader.pyw        Main program
 range_selector.pyw    Region selection tool (launched by main program)
 words_config.pyw      Word replacement configuration tool
 requirements.txt      Python dependencies
