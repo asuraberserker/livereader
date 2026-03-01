@@ -68,7 +68,7 @@ class WordsConfigApp:
         ttk.Button(btn_row, text="新增", command=self._add).pack(side="left")
         ttk.Button(btn_row, text="修改", command=self._update).pack(side="left", padx=(8, 0))
         ttk.Button(btn_row, text="删除", command=self._delete).pack(side="left", padx=(8, 0))
-        ttk.Button(btn_row, text="保存并通知主程序", command=self._save).pack(side="left", padx=(8, 0))
+        ttk.Button(btn_row, text="保存", command=self._save).pack(side="left", padx=(8, 0))
 
     def _load(self) -> None:
         self.items.clear()
@@ -127,14 +127,15 @@ class WordsConfigApp:
         content = "\n".join(f"{a}=>{b}" for a, b in self.items)
         self.words_path.write_text(content, encoding="utf-8")
 
-        # 通过 IPC 通知主程序
+        # 通过 IPC 通知主程序；若主程序未启动则静默忽略
         try:
             conn = Client(("127.0.0.1", IPC_PORT), authkey=b"livereader")
             conn.send({"type": "words", "data": self.items})
             conn.close()
-            messagebox.showinfo("完成", "保存成功，已通知主程序")
-        except Exception as e:
-            messagebox.showwarning("警告", f"文件已保存，但未能通知主程序：{e}\n请确保主程序已启动。")
+        except Exception:
+            pass
+
+        self.root.destroy()
 
 
 def main() -> None:
