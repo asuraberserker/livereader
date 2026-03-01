@@ -7,11 +7,12 @@ import sys
 import tkinter as tk
 from multiprocessing.connection import Client
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
 from PIL import ImageGrab, ImageTk
 
 IPC_PORT = 6123
+FALLBACK_FILE = Path(__file__).with_name("range_result.txt")
 
 
 class RangeSelectorApp:
@@ -20,8 +21,6 @@ class RangeSelectorApp:
         self.root.withdraw()  # 先隐藏，截图后再显示 overlay
 
         # 获取所有屏幕的整体区域（支持多显示器）
-        screen = ImageGrab.grab(all_screens=True)
-        # bbox 左上角偏移
         monitors = self._get_all_monitors()
         left   = min(m[0] for m in monitors)
         top    = min(m[1] for m in monitors)
@@ -51,12 +50,45 @@ class RangeSelectorApp:
         canvas.create_text(w // 2, 40, text="拖动鼠标选择字幕区域  |  右键或 Esc 取消",
                            fill="white", font=("微软雅黑", 14))
 
-        state = {"sx": None, "sy": None, "rect": None}
+        # 右下角"确认范围"按钮（初始隐藏）
+        confirm_btn = tk.Button(
+            overlay,
+            text="✔ 确认范围",
+            font=("微软雅黑", 13, "bold"),
+            bg="#00cc55", fg="white",
+            activebackground="#009940", activeforeground="white",
+            relief="flat", padx=16, pady=8,
+            cursor="hand2",
+        )
+        # 用 place 放在右下角，先不显示
+        self._confirm_btn = confirm_btn
+        self._pending_data = None  # 等待确认的范围数据
+
+        state = {"sx": None, "sy": None, "rect": None, "sel_rect_id": None}
+
+        def show_confirm():
+            confirm_btn.place(relx=1.0, rely=1.0, anchor="se", x=-16, y=-16)
+            confirm_btn.lift()
+
+        def hide_confirm():
+            confirm_btn.place_forget()
+
+        def on_confirm():
+            if self._pending_data is not None:
+                data = self._pending_data
+                overlay.destroy()
+                self._send_and_quit(data)
+
+        confirm_btn.config(command=on_confirm)
 
         def on_press(e):
             state["sx"], state["sy"] = e.x, e.y
+            # 开始新的拖拽，清除旧框和确认按钮
             if state["rect"]:
                 canvas.delete(state["rect"])
+                state["rect"] = None
+            hide_confirm()
+            self._pending_data = None
             state["rect"] = canvas.create_rectangle(
                 e.x, e.y, e.x, e.y, outline="#00ff66", width=2
             )
@@ -80,8 +112,8 @@ class RangeSelectorApp:
             # 转换为绝对屏幕坐标
             abs_x = self._offset_x + lft
             abs_y = self._offset_y + tp
-            overlay.destroy()
-            self._send_and_quit((abs_x, abs_y, ww, hh))
+            self._pending_data = (abs_x, abs_y, ww, hh)
+            show_confirm()
 
         def cancel(_=None):
             overlay.destroy()
@@ -95,13 +127,19 @@ class RangeSelectorApp:
         overlay.protocol("WM_DELETE_WINDOW", cancel)
 
     def _send_and_quit(self, data: tuple) -> None:
-        """把范围通过 IPC 发回主程序，然后退出。"""
+        """把范围通过 IPC 发回主程序；若主程序未启动则写入文件，静默退出。"""
         try:
             conn = Client(("127.0.0.1", IPC_PORT), authkey=b"livereader")
             conn.send({"type": "range", "data": data})
             conn.close()
-        except Exception as e:
-            messagebox.showerror("错误", f"无法回报主程序：{e}\n请确保主程序已启动。")
+        except Exception:
+            # 主程序未开启，将结果写入文件后静默退出
+            try:
+                FALLBACK_FILE.write_text(
+                    f"{data[0]},{data[1]},{data[2]},{data[3]}", encoding="utf-8"
+                )
+            except Exception:
+                pass
         finally:
             self.root.destroy()
 
